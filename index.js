@@ -18,13 +18,12 @@ let waitingSocket = null;
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.id);
 
+  // Matchmaking logic
   if (waitingSocket) {
-    // Pair the current socket with the waiting one
     const partner = waitingSocket;
     socket.partner = partner.id;
     partner.partner = socket.id;
 
-    // Notify both clients who initiates
     socket.emit("ready-to-call", { isInitiator: true });
     partner.emit("ready-to-call", { isInitiator: false });
 
@@ -33,6 +32,7 @@ io.on("connection", (socket) => {
     waitingSocket = socket;
   }
 
+  // WebRTC signaling
   socket.on("send-offer", ({ offer }) => {
     if (socket.partner) {
       io.to(socket.partner).emit("incoming-offer", { offer });
@@ -57,6 +57,13 @@ io.on("connection", (socket) => {
     }
     if (waitingSocket?.id === socket.id) {
       waitingSocket = null;
+    }
+  });
+
+  // 🟡 New: Chat support
+  socket.on("send-message", ({ message }) => {
+    if (socket.partner) {
+      io.to(socket.partner).emit("receive-message", { message });
     }
   });
 
